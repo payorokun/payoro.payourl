@@ -3,6 +3,7 @@
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-    "RedisConnectionString": "localhost:6379"
+    "RedisConnectionString": "localhost:6379",
+    "CosmosConnectionString": ""
   }
 }

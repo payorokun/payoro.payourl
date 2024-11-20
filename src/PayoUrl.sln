@@ -5,9 +5,9 @@ VisualStudioVersion = 17.10.35122.118
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Creator", "Creator", "{F45314DD-C1E2-44B4-BE50-148BC0EC99BB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PayoUrl.Creator", "PayoUrl.Creator\PayoUrl.Creator.csproj", "{EC079AB7-03FF-4EE9-BDED-9726E2927E2F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PayoUrl.Creator", "PayoUrl.Creator\PayoUrl.Creator.csproj", "{EC079AB7-03FF-4EE9-BDED-9726E2927E2F}"
 EndProject
-Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose\docker-compose.dcproj", "{1DD7474A-1126-44BA-A269-B754953F2C9B}"
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose\docker-compose.dcproj", "{2EC9363D-0E1E-41A0-8214-8EEF02C840B5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,10 +19,10 @@ Global
 		{EC079AB7-03FF-4EE9-BDED-9726E2927E2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EC079AB7-03FF-4EE9-BDED-9726E2927E2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EC079AB7-03FF-4EE9-BDED-9726E2927E2F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1DD7474A-1126-44BA-A269-B754953F2C9B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1DD7474A-1126-44BA-A269-B754953F2C9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1DD7474A-1126-44BA-A269-B754953F2C9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1DD7474A-1126-44BA-A269-B754953F2C9B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2EC9363D-0E1E-41A0-8214-8EEF02C840B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2EC9363D-0E1E-41A0-8214-8EEF02C840B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2EC9363D-0E1E-41A0-8214-8EEF02C840B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2EC9363D-0E1E-41A0-8214-8EEF02C840B5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

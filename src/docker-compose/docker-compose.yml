@@ -1,3 +1,31 @@
+# version: '3.4'
+
+# services:
+#   redis:
+#     image: "redis:latest"
+#     container_name: redis-server
+#     ports:
+#       - "6379:6379"
+#     networks:
+#       - my-network
+
+#   payourl.creator:
+#     image: ${DOCKER_REGISTRY-}payourlcreator
+#     build:
+#       context: .
+#       dockerfile: PayoUrl.Creator/Dockerfile
+#     environment:
+#       - RedisConnectionString=redis-server:6379
+#       # - CosmosDbConnectionString=https://cosmosdb-emulator:8081
+#     depends_on:
+#       - redis
+#       # - cosmosdb
+#     networks:
+#       - my-network
+# networks:
+#   my-network:
+#     driver: bridge
+
 version: '3.4'
 
 services:
@@ -13,8 +41,8 @@ services:
     image: "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator" # Use this if you have a Linux-based Cosmos DB Emulator image available; otherwise, replace with Windows-specific image for Windows containers
     container_name: cosmosdb-emulator
     environment:
-      AZURE_COSMOS_EMULATOR_PARTITION_COUNT: 3
-      AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "true"
+      AZURE_COSMOS_EMULATOR_PARTITION_COUNT: 1
+      AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "false"
     ports:
       - "8081:8081"    # Cosmos DB Emulator HTTPS port
       - "10250:10250"  # Cosmos DB direct communication port
@@ -28,13 +56,14 @@ services:
   payourl.creator:
     image: ${DOCKER_REGISTRY-}payourlcreator
     build:
-      context: .
-      dockerfile: PayoUrl.Creator/Dockerfile
+      context: ..
+      dockerfile: ./PayoUrl.Creator/Dockerfile
     environment:
       - RedisConnectionString=redis-server:6379
-      - CosmosDbConnectionString=https://cosmosdb-emulator:8081
-      - AzureWebJobsStorage=UseDevelopmentStorage=true
-      - FUNCTIONS_WORKER_RUNTIME=dotnet
+      - CosmosConnectionString=AccountEndpoint=https://cosmosdb-emulator:8081;AccountKey=C2y6yDjf5/R+ob0N8A==;
+    # ports:
+    #   - "8080:8080"  # Function app port
+    #   - "9229:9229"  # Debugging port
     depends_on:
       - redis
       - cosmosdb

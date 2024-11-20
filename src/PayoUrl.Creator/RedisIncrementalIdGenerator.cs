@@ -5,10 +5,10 @@ namespace PayoUrl.Creator;
 
 public class RedisIncrementalIdGenerator(IConnectionMultiplexer redisConnection, ILogger<RedisIncrementalIdGenerator> logger)
 {
-    public class RetrievalException() : Exception();
+    public class RetrievalException : Exception;
 
     private const string Key = "shorturl-id";
-    public async Task<long> GetId()
+    public async Task<long> IncrementReadId()
     {
         const string lockKey = $"{Key}_lock";
         var lockValue = Guid.NewGuid().ToString(); // Unique value to identify the lock owner
