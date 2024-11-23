@@ -4,6 +4,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using PayoUrl.Creator.Models;
+using PayoUrl.Creator.Services;
 
 namespace PayoUrl.Creator;
 
@@ -12,7 +13,6 @@ public class UrlShortenerFunction(ILogger<UrlShortenerFunction> logger, ShortUrl
     [Function("CreateShortUrl")]
     public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req)
     {
-        Console.WriteLine("RUNS");
         logger.LogInformation("UrlShortenerFunction HTTP trigger function processed a request.");
         string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
         var request = JsonConvert.DeserializeObject<UrlRequest>(requestBody);

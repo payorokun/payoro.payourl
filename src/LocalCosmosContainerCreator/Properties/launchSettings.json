@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "LocalCosmosContainerCreator": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}
