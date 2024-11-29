@@ -6,17 +6,17 @@ namespace PayoUrl.Creator.Services;
 
 public class ShortUrlCache(IConnectionMultiplexer redisConnection, ILogger<ShortUrlCache> logger)
 {
-    public async Task StoreAsync(UrlEntry entry)
+    public async Task StoreAsync(ShortenedUrlEntity entity)
     {
         var db = redisConnection.GetDatabase();
 
         try
         {
-            await db.StringSetAsync(entry.Id, entry.LongUrl);
+            await db.StringSetAsync(entity.ShortCode, entity.LongUrl);
         }
         catch (RedisServerException ex)
         {
-            logger.LogError(ex, "Error: Failed to cache the new item with key '{0}'.", entry.Id);
+            logger.LogError(ex, "Error: Failed to cache the new item with key '{0}'.", entity.ShortCode);
         }
     }
 }

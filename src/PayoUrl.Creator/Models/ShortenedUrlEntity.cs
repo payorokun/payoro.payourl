@@ -2,10 +2,10 @@ using Newtonsoft.Json;
 
 namespace PayoUrl.Creator.Models;
 
-public record UrlEntry
+public record ShortenedUrlEntity
 {
-    [JsonProperty("id")]
-    public string Id { get; set; }
+    [JsonProperty("shortCode")]
+    public string ShortCode { get; set; }
 
     [JsonProperty("longUrl")]
     public string LongUrl { get; set; }

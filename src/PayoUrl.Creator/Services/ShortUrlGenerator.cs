@@ -3,6 +3,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using PayoUrl.Creator.Models;
 using Polly;
+using Polly.Wrap;
 
 namespace PayoUrl.Creator.Services;
 
@@ -15,42 +16,20 @@ public class ShortUrlGenerator(
 {
     public class GenerationException(string message, Exception innerException = null)
         : Exception(message, innerException);
-    public class ConflictException(string shortId, string longUrl, Exception innerException = null)
-        : Exception($"A conflict occurred while trying to create the item. ID: {shortId}, Long URL: {longUrl}", innerException);
+    public class ConflictException(ShortenedUrlEntity entity, Exception innerException = null)
+        : Exception($"A conflict occurred while trying to create item with Short Code: {entity.ShortCode}, Long URL: {entity.LongUrl}", innerException);
 
 
-    public async Task<UrlEntry> CreateAsync(string longUrl)
+    public async Task<ShortenedUrlEntity> GenerateAsync(string longUrl)
     {
-        var retryPolicy = Policy
-            .Handle<ConflictException>()
-            .RetryAsync(10, (ex, retryCount) =>
-            {
-                logger.LogError(ex, ex.Message);
-                logger.LogWarning("Retrying due to conflict. Attempt {RetryCount}", retryCount);
-            });
+        var policy = GetRetryPolicyFor(longUrl);
 
-        var fallbackPolicy = Policy<UrlEntry>
-            .Handle<ConflictException>()
-            .FallbackAsync(
-                fallbackValue: null,
-                onFallbackAsync: (exception, _) =>
-                {
-                    logger.LogError(exception.Exception, "All retry attempts failed to resolve the cosmos creation conflict for URL: {LongUrl}", longUrl);
-                    return Task.CompletedTask;
-                });
         try
         {
-            ItemResponse<UrlEntry> newItem = null;
+            var newItem = await policy.ExecuteAsync(async () => await RegisterShortenedUrl(longUrl));
 
-            await fallbackPolicy.WrapAsync(retryPolicy).ExecuteAsync(async () =>
-            {
-                newItem = await GetValue(longUrl);
-                if (newItem.StatusCode == HttpStatusCode.Created)
-                {
-                    logger.LogInformation("Item with ID {ID} for LongUrl {LongUrl} created in database", newItem.Resource.Id, newItem.Resource.LongUrl);
-                }
-                return newItem.Resource;
-            });
+            await shortUrlCache.StoreAsync(newItem);
+
             return newItem;
 
         }
@@ -61,31 +40,62 @@ public class ShortUrlGenerator(
         }
     }
 
-    private async Task<ItemResponse<UrlEntry>> GetValue(string longUrl)
+    private async Task<ShortenedUrlEntity> RegisterShortenedUrl(string longUrl)
     {
-        var newId = await incrementalIdGenerator.GetNewIdAsync();
-
-        var encodedId = encoder.Encode(newId);
-
-        ItemResponse<UrlEntry> createdItem;
+        var entity = await GetNewShortenedUrlEntity(longUrl);
+        ItemResponse<ShortenedUrlEntity> databaseGeneratedItem;
 
         try
         {
-            createdItem = await payoUrlDatabase.CreateItemAsync(new UrlEntry
-            {
-                Id = encodedId,
-                LongUrl = longUrl,
-                CreatedAt = DateTime.UtcNow
-            }, partitionKey: new PartitionKey(encodedId));
+            databaseGeneratedItem = await payoUrlDatabase.CreateItemAsync(entity, partitionKey: new PartitionKey(entity.ShortCode));
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
         {
-            throw new ConflictException(encodedId, longUrl, ex);
+            throw new ConflictException(entity, ex);
         }
 
-        await shortUrlCache.StoreAsync(createdItem.Resource);
+        if (databaseGeneratedItem.StatusCode != HttpStatusCode.Created)
+        {
+            throw new GenerationException($"Failed to create database item for {longUrl}. Status Code: {databaseGeneratedItem.StatusCode}");
+        }
 
-        return createdItem;
+        logger.LogInformation("Item with Short Code {ShortCode} for LongUrl {LongUrl} created in database", databaseGeneratedItem.Resource.ShortCode, databaseGeneratedItem.Resource.LongUrl);
 
+        return databaseGeneratedItem.Resource;
+    }
+
+    private async Task<ShortenedUrlEntity> GetNewShortenedUrlEntity(string longUrl)
+    {
+        var newId = await incrementalIdGenerator.GetNewIdAsync();
+        var shortCode = encoder.Encode(newId);
+        return new ShortenedUrlEntity
+        {
+            ShortCode = shortCode,
+            LongUrl = longUrl,
+            CreatedAt = DateTime.UtcNow
+        };
+    }
+
+    private AsyncPolicyWrap<ShortenedUrlEntity> GetRetryPolicyFor(string longUrl)
+    {
+        var retryPolicy = Policy
+            .Handle<ConflictException>()
+            .RetryAsync(10, (ex, retryCount) =>
+            {
+                logger.LogError(ex, ex.Message);
+                logger.LogWarning("Retrying due to conflict. Attempt {RetryCount}", retryCount);
+            });
+
+        var fallbackPolicy = Policy<ShortenedUrlEntity>
+            .Handle<ConflictException>()
+            .FallbackAsync(
+                fallbackValue: null,
+                onFallbackAsync: (exception, _) =>
+                {
+                    logger.LogError(exception.Exception, "All retry attempts failed to resolve the database conflict for URL: {LongUrl}", longUrl);
+                    return Task.CompletedTask;
+                });
+        var policy = fallbackPolicy.WrapAsync(retryPolicy);
+        return policy;
     }
 }
