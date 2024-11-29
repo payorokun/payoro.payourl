@@ -8,21 +8,17 @@ namespace PayoUrl.Creator.Services;
 public class IncrementalIdGenerator(IConnectionMultiplexer redisConnection, ILogger<IncrementalIdGenerator> logger)
 {
     public class IncrementalIdGenerationException : Exception;
+    private const string Key = "shorturl-id";
 
     public async Task<long> GetNewIdAsync()
     {
-        const string key = "shorturl-id";
-        const string lockKey = $"{key}_lock";
-        var lockValue = Guid.NewGuid().ToString(); // Unique value to identify the lock owner
-        var lockExpiry = TimeSpan.FromSeconds(1); // Set a reasonable expiry for the lock
-
         var db = redisConnection.GetDatabase();
 
-        var retryPolicy = GetRetryPolicy(key, db, lockKey, lockValue, lockExpiry);
+        var retryPolicy = GetRetryPolicy(db);
 
         try
         {
-            return await retryPolicy.ExecuteAsync(async () => await db.StringIncrementAsync(key));
+            return await retryPolicy.ExecuteAsync(async () => await db.StringIncrementAsync(Key));
         }
         catch (Exception e)
         {
@@ -31,9 +27,12 @@ public class IncrementalIdGenerator(IConnectionMultiplexer redisConnection, ILog
         }
     }
 
-    private AsyncRetryPolicy GetRetryPolicy(string key, IDatabase db, string lockKey, string lockValue, TimeSpan lockExpiry)
+    private AsyncRetryPolicy GetRetryPolicy(IDatabase db)
     {
         const int maxRetryCount = 1;
+        const string lockKey = $"{Key}_lock";
+        var lockValue = Guid.NewGuid().ToString(); // Unique value to identify the lock owner
+        var lockExpiry = TimeSpan.FromSeconds(1); // Set a reasonable expiry for the lock
 
         var retryPolicy = Policy
             .Handle<RedisServerException>(ex =>
@@ -48,12 +47,12 @@ public class IncrementalIdGenerator(IConnectionMultiplexer redisConnection, ILog
                     switch (redisEx.Message)
                     {
                         case var msg when msg.Contains("WRONGTYPE"):
-                            logger.LogError("Error: The key '{key}' contains a non-integer or incompatible type.", key);
+                            logger.LogError("Error: The key '{key}' contains a non-integer or incompatible type.", Key);
                             if (await db.LockTakeAsync(lockKey, lockValue, lockExpiry))
                             {
                                 try
                                 {
-                                    if (await db.KeyDeleteAsync(key))
+                                    if (await db.KeyDeleteAsync(Key))
                                     {
                                         logger.LogInformation("Index cache key was deleted and can be re-created.");
                                     }
@@ -65,12 +64,12 @@ public class IncrementalIdGenerator(IConnectionMultiplexer redisConnection, ILog
                             }
                             break;
                         case var msg when msg.Contains("ERR value is not an integer or out of range"):
-                            logger.LogError("Error: The value at Key '{key}' cannot be incremented because it's out of range.", key);
+                            logger.LogError("Error: The value at Key '{key}' cannot be incremented because it's out of range.", Key);
                             if (await db.LockTakeAsync(lockKey, lockValue, lockExpiry))
                             {
                                 try
                                 {
-                                    if (await db.StringSetAsync(key, 0))
+                                    if (await db.StringSetAsync(Key, 0))
                                     {
                                         logger.LogInformation("Index cache key was returned to zero."); 
                                     }
